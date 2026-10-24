@@ -24,6 +24,7 @@ app.use(express.json({ limit: '15mb' }));
 app.use(express.urlencoded({ extended: true, limit: '15mb' }));
 
 const path = require('path');
+const fs = require('fs');
 
 // Health Check API
 app.get('/api/health', async (req, res) => {
@@ -87,6 +88,18 @@ app.use('/api/orders', ordersRoutes);
 app.use('/api/game', gameRoutes);
 app.use('/api/admin', adminRoutes);
 
+// Serve Static Frontend (Vite Build) in Production / Deployment
+const clientDistPath = path.join(__dirname, '../client/dist');
+if (fs.existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path.startsWith('/uploads')) {
+      return next();
+    }
+    res.sendFile(path.join(clientDistPath, 'index.html'));
+  });
+}
+
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('Unhandled Server Error:', err);
@@ -97,7 +110,25 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, () => {
-  console.log(`🚀 WinArena Backend API running at http://localhost:${PORT}`);
-  console.log(`📡 Connected to PostgreSQL database: ${process.env.DB_NAME || 'ChallengeDB'}`);
+app.listen(PORT, async () => {
+  console.log(`🚀 WinArena Server running on port ${PORT}`);
+  console.log(`📡 Database: ${process.env.DATABASE_URL ? 'Cloud PostgreSQL (DATABASE_URL configured)' : (process.env.DB_NAME || 'ChallengeDB')}`);
+
+  // Auto-init schema if deploying to a fresh database (e.g. Railway)
+  try {
+    const checkRes = await db.query(`
+      SELECT EXISTS (
+        SELECT FROM information_schema.tables 
+        WHERE table_schema = 'public' AND table_name = 'users'
+      );
+    `);
+    if (!checkRes.rows[0].exists) {
+      console.log('🔄 First-time deployment detected! Initializing database schema & seeds...');
+      const { seedDatabase } = require('./seed');
+      await seedDatabase();
+      console.log('🎉 Database tables & seed data initialized successfully!');
+    }
+  } catch (err) {
+    console.warn('Database initialization check note:', err.message);
+  }
 });

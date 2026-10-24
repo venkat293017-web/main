@@ -324,13 +324,19 @@ async function seedDatabase() {
     throw err;
   } finally {
     client.release();
-    await pool.end();
+    if (require.main === module) {
+      await pool.end();
+    }
   }
 }
 
-seedDatabase().then(() => {
-  process.exit(0);
-}).catch((err) => {
-  console.error(err);
-  process.exit(1);
-});
+if (require.main === module) {
+  seedDatabase().then(() => {
+    process.exit(0);
+  }).catch((err) => {
+    console.error(err);
+    process.exit(1);
+  });
+}
+
+module.exports = { seedDatabase };
