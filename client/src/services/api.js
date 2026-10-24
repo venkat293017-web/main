@@ -21,7 +21,7 @@ async function request(endpoint, options = {}) {
 
   if (!response.ok) {
     const errorMsg =
-      data?.error ||
+      (data?.error && data?.details ? `${data.error}: ${data.details}` : data?.error) ||
       (response.status === 500
         ? 'Backend server error or server is unavailable (port 5000)'
         : `Request failed with status ${response.status}`);

@@ -1,12 +1,25 @@
 const { Pool } = require('pg');
 require('dotenv').config();
 
+const getSSLConfig = () => {
+  if (!process.env.DATABASE_URL) return false;
+  if (process.env.DATABASE_URL.includes('localhost') || process.env.DATABASE_URL.includes('127.0.0.1')) {
+    return false;
+  }
+  // Render internal network hosts (dpg-...:5432) do NOT support SSL
+  if (/@dpg-[a-z0-9]+(-a)?(:|\/)/i.test(process.env.DATABASE_URL) && !process.env.DATABASE_URL.includes('.render.com')) {
+    return false;
+  }
+  // External cloud hosts require SSL
+  return { rejectUnauthorized: false };
+};
+
+const sslConfig = getSSLConfig();
+
 const connectionConfig = process.env.DATABASE_URL
   ? {
       connectionString: process.env.DATABASE_URL,
-      ssl: {
-        rejectUnauthorized: false,
-      },
+      ...(sslConfig ? { ssl: sslConfig } : {}),
     }
   : {
       host: process.env.DB_HOST || 'localhost',

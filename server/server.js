@@ -34,10 +34,28 @@ app.get('/api/health', async (req, res) => {
       status: 'UP',
       time: dbRes.rows[0].now,
       service: 'WinArena 5-Day Skill Tournament API',
-      database: 'ChallengeDB'
+      database: process.env.DATABASE_URL ? 'Cloud PostgreSQL' : (process.env.DB_NAME || 'ChallengeDB')
     });
   } catch (err) {
     res.status(500).json({ status: 'DOWN', error: err.message });
+  }
+});
+
+// Database Initialization & Seed Endpoint
+app.get('/api/init-db', async (req, res) => {
+  try {
+    const { seedDatabase } = require('./seed');
+    await seedDatabase();
+    res.json({
+      success: true,
+      message: 'Database schema & initial seed data loaded successfully!'
+    });
+  } catch (err) {
+    console.error('Init DB error:', err);
+    res.status(500).json({
+      success: false,
+      error: err.message
+    });
   }
 });
 
