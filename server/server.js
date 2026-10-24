@@ -110,7 +110,7 @@ app.use((err, req, res, next) => {
   });
 });
 
-app.listen(PORT, async () => {
+app.listen(PORT, '0.0.0.0', async () => {
   console.log(`🚀 WinArena Server running on port ${PORT}`);
   console.log(`📡 Database: ${process.env.DATABASE_URL ? 'Cloud PostgreSQL (DATABASE_URL configured)' : (process.env.DB_NAME || 'ChallengeDB')}`);
 
